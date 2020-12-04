@@ -2,11 +2,8 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <serialsetup.h>
-#include <QFont>
-#include <QDebug>
-#include <sqlui.h>
-
+#include "serialport.h"
+#include "sqlui.h"
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
@@ -20,25 +17,21 @@ public:
     ~MainWindow();
 
 private slots:
+    void on_actionAddPort_triggered();
+    void showPortPrint(QString);
+    void updateCheckNum(QString);
+
     void on_pushButton_clicked();
 
-    void on_actionSerial_Port_Setting_triggered();
-    void GetSerialData(QByteArray);
+    void on_pushButton_2_clicked();
 
-    void on_sendBtn_clicked();
+    void on_xlsxBtn_err_clicked();
 
     void on_sendBtn_db_clicked();
 
-    void on_xlsxBtn_clicked();
-
-    void on_textBrowser_textChanged();
-
 private:
     Ui::MainWindow *ui;
-    Serial serialPort;
-    SerialSetup serialsetupDialog;
-
-    SQLUI m_sql;
-
+    SQLUI mainSQL;
+    QString start_time;
 };
 #endif // MAINWINDOW_H

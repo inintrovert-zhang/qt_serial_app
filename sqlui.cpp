@@ -115,7 +115,7 @@ bool SQLUI::insert(QString &table, QStringList &names, QStringList &values)
     }
 
     sql = sql + QString(")");
-
+    qDebug() << sql;
     if (query.exec(sql))
     {
         return true;
@@ -152,8 +152,8 @@ bool SQLUI::Updata(QString &table, QStringList &names, QStringList &values, QStr
             sql = sql + QString(" ,");
         }
     }
-
     sql = sql + QString(" where ") + expression;
+     qDebug() << sql;
     if (query.exec(sql))
     {
         return true;
@@ -183,6 +183,55 @@ bool SQLUI::del(QString &table, QString &expression)
         return false;
     }
 }
+
+int SQLUI::getToatalRecNum(QString &table)
+{
+    QSqlQuery query(QSqlDatabase::database());
+    QString sql = QString("select * from ") + table;
+    qDebug() << sql;
+    query.exec(sql);
+    QSqlQueryModel *queryModel = new QSqlQueryModel();
+    queryModel->setQuery(query);
+    while(queryModel->canFetchMore())
+    {
+        queryModel->fetchMore();
+    }
+    qDebug() <<"queryModel->rowCount()" << queryModel->rowCount();
+    return queryModel->rowCount();
+}
+
+//Select * From #temptable Where no>=10 And no < 20
+int SQLUI::getThisRecNum(QString &table, QString &time)
+{
+    QSqlQuery query(QSqlDatabase::database());
+    QString sql = QString("select * from "+table+" where time > '"+time+"'");;
+    qDebug() << sql;
+    query.exec(sql);
+    QSqlQueryModel *queryModel = new QSqlQueryModel();
+    queryModel->setQuery(query);
+    while(queryModel->canFetchMore())
+    {
+        queryModel->fetchMore();
+    }
+    return queryModel->rowCount();
+}
+
+int SQLUI::getThisComRecNum(QString &table, QString &time, QString &com)
+{
+    QSqlQuery query(QSqlDatabase::database());
+    QString sql = QString("select * from "+table+" where time > '"+time+"' and ErrCode like '%"+com+"%'");
+    qDebug() << sql;
+    query.exec(sql);
+    QSqlQueryModel *queryModel = new QSqlQueryModel();
+    queryModel->setQuery(query);
+    while(queryModel->canFetchMore())
+    {
+        queryModel->fetchMore();
+    }
+    return queryModel->rowCount();
+}
+
+
 
 void SQLUI::QueryAllDataFromOne(QString column,QString &value,QString &value1)
 {
@@ -267,10 +316,45 @@ void SQLUI::GetValues(QString &table, QStringList &values)
     }
 }
 
+void SQLUI::GetValues2(QString &table, QStringList &values, QStringList &values2, QStringList &values3)
+{
+    QSqlQuery query(QSqlDatabase::database());
+    QString sql = QString("select * from ") + table;
+    qDebug() << sql;
+    if(query.exec(sql))
+    {
+        while (query.next())
+        {
+            values << query.value(0).toString();
+            values2 << query.value(1).toString();
+            values3 << query.value(2).toString();
+        }
+    }else
+    {
+       // firstuse.show();
+        qDebug() << "sql no dat";
+    }
+}
+
 bool SQLUI::CheckRepeat(QString &TableName,QString &column,QString &value)
 {
     QSqlQuery query(QSqlDatabase::database());
     QString sql = QString("select "+column+" from "+TableName+" where "+column+" = '"+value+"'");
+    qDebug() << sql;
+    if(query.exec(sql))
+    {
+        if(query.next())
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool SQLUI::CheckRepeat2(QString &TableName, QString &column, QString &value, QString &column2, QString &value2)
+{
+    QSqlQuery query(QSqlDatabase::database());
+    QString sql = QString("select "+column+" from "+TableName+" where "+column+" = '"+value+"' and "+column2+" = '"+value2+"'");
     qDebug() << sql;
     if(query.exec(sql))
     {
@@ -311,11 +395,13 @@ bool SQLUI::CheckPWD(QString PWD)
 
 void SQLUI::InitDB()
 {
-    QStringList QRKEY,ADKEY,ADVALUE;
+    QStringList QRKEY,ADKEY,ADVALUE,ERRKEY;
     QString QRTable = "QRCODE";
     QString AdminTable = "USER";
+    QString QRTableErr = "QERRCODE";
 
     QRKEY<<"UID_16";
+    ERRKEY<<"time"<<"UID_16"<<"ErrCode";
     ADKEY<<"USER"<<"PASSWD";
     ADVALUE<<"Admin"<<"123456";
 
@@ -327,6 +413,7 @@ void SQLUI::InitDB()
         opendatabase();
 
         CreatTable(QRTable,QRKEY);
+        CreatTable(QRTableErr,ERRKEY);
         CreatTable(AdminTable,ADKEY);
 
         insert(AdminTable,ADKEY,ADVALUE);

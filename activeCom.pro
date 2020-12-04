@@ -1,4 +1,4 @@
-QT       += core gui  sql axcontainer serialport xlsx
+QT       += core gui sql axcontainer serialport xlsx network
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -16,24 +16,24 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
-    dialog.cpp \
     main.cpp \
     mainwindow.cpp \
-    serial.cpp \
-    serialsetup.cpp \
+    paraset.cpp \
+    serialport.cpp \
+    singleapplication.cpp \
     sqlui.cpp
 
 HEADERS += \
-    dialog.h \
     mainwindow.h \
-    serial.h \
-    serialsetup.h \
+    paraset.h \
+    serialport.h \
+    singleapplication.h \
     sqlui.h
 
 FORMS += \
-    dialog.ui \
     mainwindow.ui \
-    serialsetup.ui
+    paraset.ui \
+    serialport.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

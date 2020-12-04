@@ -1,9 +1,8 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include <QFont>
 #include <QTime>
 #include <QtXlsx>
-extern QSerialPort serial;
+#include <QMessageBox>
 QXlsx::Document xlsx;
 
 MainWindow::MainWindow(QWidget *parent)
@@ -11,8 +10,19 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    m_sql.InitDB();
-    connect(&serialPort,SIGNAL(SerialData(QByteArray)),this,SLOT(GetSerialData(QByteArray)));
+    this->setWindowTitle(tr("测试控制终端"));
+    QPalette mypalette;
+    mypalette.setColor(QPalette::Text,Qt::blue);
+    ui->lineEdit_hisTotal->setPalette(mypalette);
+    ui->lineEdit_thisTotal->setPalette(mypalette);
+
+    QDateTime current_date_time = QDateTime::currentDateTime();
+    start_time = current_date_time.toString("yyyyMMddhhmmss");
+    QString QRTableErr = "QERRCODE";
+    ui->lineEdit_hisTotal->setText(QString::number(mainSQL.getToatalRecNum(QRTableErr)));
+    ui->lineEdit_thisTotal->setText(QString::number(mainSQL.getThisRecNum(QRTableErr, start_time)));
+
+    ui->textBrowser->document()->setMaximumBlockCount(1000);
 }
 
 MainWindow::~MainWindow()
@@ -21,117 +31,103 @@ MainWindow::~MainWindow()
 }
 
 
-void MainWindow::on_pushButton_clicked()
+void MainWindow::on_actionAddPort_triggered()
 {
-    QString mystring = ui->textEdit->toPlainText();
-
-    statusBar()->showMessage("Status is here...", 3000);
-
-}
-
-void MainWindow::on_actionSerial_Port_Setting_triggered()
-{
-    serialsetupDialog.show();
-}
-
-void MainWindow::GetSerialData(QByteArray data)
-{
-    QStringList QRKEY,QDVALUE;
-    QString QRTable = "QRCODE";
-    QString QRKEY_C = "UID_16";
-
-    if(data.data()[0] == 0x4f && data.data()[1] == 0x4b)
+    if(serialPort::isPortObjectMaxNum() == false)
     {
-        int len = (data.data()[2] << 8) + data.data()[3];
-        if(len == 17 &&  data.length() == 21 && data.data()[4] == 0x1e)
-        {
-            QByteArray uid = data.mid(5);
-            QString dat_ch = uid.toHex();
-           // QString str = dat_ch.to;
-            QRKEY<<"UID_16";
-            QDVALUE<<dat_ch;
-            qDebug() <<"dat coming mainwindow!";
-            if(m_sql.CheckRepeat(QRTable,QRKEY_C, dat_ch) == false)
-            {
-                m_sql.insert(QRTable, QRKEY, QDVALUE);
-            }
-            else
-            {
-                qDebug() << data <<" already exist in db!!";
-            }
-
-            QTextCursor tc = ui->textBrowser->textCursor();
-            tc.movePosition(QTextCursor::End);
-            tc.insertText("UID:"+ dat_ch+"\n");
-
-            QByteArray rsp = QByteArrayLiteral("\x1b\x11\x00\x02\x1e\x00");
-            serial.write(rsp);
-        }
+        serialPort *activePort1 = new serialPort(this);
+        connect(activePort1, SIGNAL(send(QString)),this,SLOT(showPortPrint(QString)));
+        connect(activePort1, SIGNAL(sendUid(QString)),this,SLOT(updateCheckNum(QString)));
+        activePort1->show();
     }
     else
     {
-         QString dis = QString::fromLocal8Bit(data);
-         QTextCursor tc = ui->textBrowser->textCursor();
-         tc.movePosition(QTextCursor::End);
-         tc.insertText(dis);
-        // ui->textBrowser->append(dis);
+        QMessageBox msgBox;
+        msgBox.setText("打开端口数目已达上限....");
+        msgBox.exec();
     }
-
-
 }
 
-void MainWindow::on_sendBtn_clicked()
+void MainWindow::showPortPrint(QString dat)
 {
-   if(serial.isOpen())
+    QTextCursor tc = ui->textBrowser->textCursor();
+    tc.movePosition(QTextCursor::End);
+    ui->textBrowser->append(dat);
+
+
+//    ui->receive_data_textEdit->insertPlainText(com_str);
+//    ui->receive_data_textEdit->moveCursor(QTextCursor::End);
+}
+
+void MainWindow::updateCheckNum(QString dat)
+{
+    showPortPrint(dat);
+
+    QString QRTableErr = "QERRCODE";
+
+    ui->lineEdit_hisTotal->setText(QString::number(mainSQL.getToatalRecNum(QRTableErr)));
+    ui->lineEdit_thisTotal->setText(QString::number(mainSQL.getThisRecNum(QRTableErr, start_time)));
+}
+
+void MainWindow::on_pushButton_clicked()
+{
+    QString QRTableErr = "QERRCODE";
+    QDateTime current_date_time = QDateTime::currentDateTime();
+    start_time = current_date_time.toString("yyyyMMddhhmmss");
+    ui->lineEdit_thisTotal->setText(QString::number(mainSQL.getThisRecNum(QRTableErr, start_time)));
+}
+
+void MainWindow::on_pushButton_2_clicked()
+{
+    ui->textBrowser->clear();
+}
+
+void MainWindow::on_xlsxBtn_err_clicked()
+{
+    QDateTime current_date_time = QDateTime::currentDateTime();
+    QString current_date = current_date_time.toString("yyyyMMddhhmmss");
+    QString FileName = "UID_ERRCODE"+current_date+".xlsx";
+
+    xlsx.write(1,1,tr("DATE"));
+    xlsx.write(1,2,tr("UID"));
+    xlsx.write(1,3,tr("ERRCODE"));
+
+    QString QRTableErr = "QERRCODE";
+    QStringList value,value2,value3;
+    mainSQL.GetValues2(QRTableErr,value,value2,value3);
+    for(int i = 0; i< value.size();++i)
+    {
+        QString tmp = value.at(i);
+        xlsx.write(2+i,1,tmp);
+    }
+    for(int i = 0; i< value2.size();++i)
+    {
+        QString tmp = value2.at(i);
+        xlsx.write(2+i,2,tmp);
+    }
+    for(int i = 0; i< value3.size();++i)
+    {
+        QString tmp = value3.at(i);
+        xlsx.write(2+i,3,tmp);
+    }
+   xlsx.saveAs(FileName);
+
+   QFile file(FileName);
+
+   if (file.exists())
    {
-        QString mystring = ui->textEdit->toPlainText();
-        serial.write(mystring.toLocal8Bit(), mystring.toLocal8Bit().length());
-   }
-   else
-   {
-       statusBar()->showMessage("please connnect serial port...", 3000);
+       QDesktopServices::openUrl(QUrl::fromLocalFile(FileName));
    }
 }
 
 void MainWindow::on_sendBtn_db_clicked()
 {
-    QString QRTable = "QRCODE";
-    QStringList value;
-    m_sql.GetValues(QRTable,value);
+    QString QRTableErr = "QERRCODE";
+    QStringList value,value2,value3;
+    mainSQL.GetValues2(QRTableErr,value,value2,value3);
     for(int i = 0; i< value.size();++i)
     {
-        QString tmp = value.at(i);
+        QString tmp = "date:" + value.at(i) +" uid:" +value2.at(i)+" errcode:" +value3.at(i);
         ui->textBrowser->append(tmp);
     }
-}
-
-void MainWindow::on_xlsxBtn_clicked()
-{
-     QDateTime current_date_time = QDateTime::currentDateTime();
-     QString current_date = current_date_time.toString("yyyyMMddhhmmss");
-     QString FileName = "UID_"+current_date+".xlsx";
-
-
-     xlsx.write(1,1,tr("UID"));
-     QString QRTable = "QRCODE";
-     QStringList value;
-     m_sql.GetValues(QRTable,value);
-     for(int i = 0; i< value.size();++i)
-     {
-         QString tmp = value.at(i);
-         xlsx.write(2+i,1,tmp);
-     }
-    xlsx.saveAs(FileName);
-
-    QFile file(FileName);
-
-    if (file.exists())
-    {
-        QDesktopServices::openUrl(QUrl::fromLocalFile(FileName));
-    }
-}
-
-void MainWindow::on_textBrowser_textChanged()
-{
-    ui->textBrowser->moveCursor(QTextCursor::End);
 }

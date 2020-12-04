@@ -27,10 +27,15 @@ public slots:
     bool insert(QString &table, QStringList &names,QStringList &values);
     bool Updata(QString &table, QStringList &names,QStringList &values, QString &expression);
     bool del(QString &table, QString &expression);
+    int  getToatalRecNum(QString &table);
+    int  getThisRecNum(QString &table, QString &time);
+    int  getThisComRecNum(QString &table, QString &time, QString &com);
     void GetValues(QString &table, QStringList &values);
+    void GetValues2(QString &table, QStringList &values,QStringList &values2,QStringList &values3);
     void InitDB();
     bool CheckPWD(QString PWD);
     bool CheckRepeat(QString &TableName,QString &column,QString &value);
+    bool CheckRepeat2(QString &TableName,QString &column,QString &value,QString &column2,QString &value2);
     void QueryAllDataFromOne(QString column,QString &value,QString &value1);
 private slots:
     void on_OKPushButton_clicked();
