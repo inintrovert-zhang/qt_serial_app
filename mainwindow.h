@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include "serialport.h"
 #include "sqlui.h"
+#include "progresswait.h"
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
@@ -29,9 +30,17 @@ private slots:
 
     void on_sendBtn_db_clicked();
 
+    void on_pushButton_3_clicked();
+
 private:
     Ui::MainWindow *ui;
     SQLUI mainSQL;
     QString start_time;
+    progressWait progress;
+
+
+signals:
+    void importNum(int, int);
+
 };
 #endif // MAINWINDOW_H

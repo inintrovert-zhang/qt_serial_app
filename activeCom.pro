@@ -19,6 +19,7 @@ SOURCES += \
     main.cpp \
     mainwindow.cpp \
     paraset.cpp \
+    progresswait.cpp \
     serialport.cpp \
     singleapplication.cpp \
     sqlui.cpp
@@ -26,6 +27,7 @@ SOURCES += \
 HEADERS += \
     mainwindow.h \
     paraset.h \
+    progresswait.h \
     serialport.h \
     singleapplication.h \
     sqlui.h
@@ -33,6 +35,7 @@ HEADERS += \
 FORMS += \
     mainwindow.ui \
     paraset.ui \
+    progresswait.ui \
     serialport.ui
 
 # Default rules for deployment.

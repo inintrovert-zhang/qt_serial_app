@@ -18,7 +18,6 @@ serialPort::serialPort(QWidget *parent) :
     wWritePoint = 0;                              ///< 写指针
 
     ui->setupUi(this);
-    serialSQL.InitDB();
     this->setWindowTitle(tr("终端"));
     this->setAttribute(Qt::WA_DeleteOnClose,true);
     GetSerialport();
@@ -27,8 +26,11 @@ serialPort::serialPort(QWidget *parent) :
     ui->labelComStat->setPalette(mypalette);
     ui->labelComStat->setText(tr("未连接.."));
 
-    ui->textBrowser->document()->setMaximumBlockCount(100);
-
+    mypalette.setColor(QPalette::Text,Qt::blue);
+    ui->lineEdit->setPalette(mypalette);
+    QDateTime current_date_time = QDateTime::currentDateTime();
+    start_time = current_date_time.toString("yyyyMMddhhmmss");
+    ui->lineEdit->setText(QString::number(0));
     connect(&serial, SIGNAL(readyRead()), this, SLOT(readData()));
     connect(&timer, SIGNAL(timeout()), this, SLOT(timeUpdate()));
     connect(this,SIGNAL(send(QByteArray)),&mParaSet,SLOT(GetSerialData(QByteArray)));
@@ -122,23 +124,14 @@ void serialPort::timeUpdate()
             {
                 baRcvData.clear();
             }
-            else
-            if((0x4f == Queue1[(wReadPoint  + 1024 - 1) % (1024)]) && (0x4b == Queue1[(wReadPoint + 1024) % (1024)]))  //获取到新的数据
-            {
-                baRcvData.clear();
-                baRcvData.append(0x4f);
-                baRcvData.append(0x4b);
-                qDebug()<< "new dat.................";
-            }
         }
         else
-        if(Queue1[wReadPoint] == '\n' || baRcvData.length() >= 256)//定义单个打印字符串长度不超过256
+        if((0x4f == Queue1[(wReadPoint  + 1024 - 1) % (1024)]) && (0x4b == Queue1[(wReadPoint + 1024) % (1024)]))  //获取到新的数据
         {
-            GetSerialData(baRcvData);
             baRcvData.clear();
-
-            qDebug()<< "read wWritePoint:" << wWritePoint;
-            qDebug()<< "read wReadPoint:" << wReadPoint;
+            baRcvData.append(0x4f);
+            baRcvData.append(0x4b);
+            qDebug()<< "new dat.................";
         }
 
         wReadPoint = (wReadPoint + 1) % (1024);
@@ -151,7 +144,7 @@ void serialPort::on_OK_clicked()
     {
         serial.clear();
         serial.close();
-        ui->OK->setText(tr("CONNCT"));
+        ui->OK->setText(tr("连接"));
         statusBar()->showMessage(serial.portName() + " closed..", 3000);
         ui->labelComStat->setText(tr("连接断开.."));
         emit send(serial.portName() + " closed..");
@@ -162,7 +155,7 @@ void serialPort::on_OK_clicked()
         bool SerialResault = OpenSerial(ui->SerialPort->currentText(),baud);
         if(SerialResault)
         {
-            ui->OK->setText(tr("DISCONNCT"));
+            ui->OK->setText(tr("断开"));
             statusBar()->showMessage(serial.portName() + " open successful!!", 3000);
             ui->labelComStat->setText(serial.portName() + ", " + QString::number(serial.baudRate()) + " 已连接");
             emit send(serial.portName() + ", " + QString::number(serial.baudRate()) + " 已连接");
@@ -217,7 +210,7 @@ void serialPort::GetSerialData(QByteArray data)
 
             QByteArray uid = data.mid(5,16);
             QString dat_ch = uid.toHex();
-            QString err_code = QString::number(data.data()[21]);
+            QString err_code = serial.portName() + "-" +QString::number(data.data()[21]);
            // QString str = dat_ch.to;
             ERRKEY<<"time"<<"UID_16"<<"ErrCode";
             QDateTime current_date_time = QDateTime::currentDateTime();
@@ -253,12 +246,8 @@ void serialPort::GetSerialData(QByteArray data)
                 ui->textBrowser->append("<font color=\"#FF0000\"  size='+1'>" + strMsg + "</font> ");
                 emit sendUid("<font color=\"#FF0000\"  size='+1'>" + serial.portName() + "-"+strMsg +"</font> ");
             }
-
-
-           // ui->lineEdit_hisTotal->setText(QString::number(serialSQL.getToatalRecNum(QRTableErr)));
-           // QString portName = serial.portName();
-           // ui->lineEdit_thisTotal->setText(QString::number(serialSQL.getThisComRecNum(QRTableErr, start_time,portName)));
-
+            QString portName = serial.portName();
+            ui->lineEdit->setText(QString::number(serialSQL.getThisComRecNum(QRTableErr, start_time,portName)));
         }
         else
         if(data.data()[4] == 0x20)

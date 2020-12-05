@@ -58,7 +58,7 @@ private:
     //记录对象个数
     static size_t numObjects;
     static const size_t maxObjects;
-
+    QString start_time;
 signals:
     void send(QString);
     void sendUid(QString);

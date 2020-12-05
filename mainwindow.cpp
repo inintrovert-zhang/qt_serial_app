@@ -3,6 +3,7 @@
 #include <QTime>
 #include <QtXlsx>
 #include <QMessageBox>
+#include <QFileDialog>
 QXlsx::Document xlsx;
 
 MainWindow::MainWindow(QWidget *parent)
@@ -10,12 +11,14 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    mainSQL.InitDB();
     this->setWindowTitle(tr("测试控制终端"));
     QPalette mypalette;
     mypalette.setColor(QPalette::Text,Qt::blue);
     ui->lineEdit_hisTotal->setPalette(mypalette);
     ui->lineEdit_thisTotal->setPalette(mypalette);
-
+    mypalette.setColor(QPalette::WindowText,Qt::blue);
+    statusBar()->setPalette(mypalette);
     QDateTime current_date_time = QDateTime::currentDateTime();
     start_time = current_date_time.toString("yyyyMMddhhmmss");
     QString QRTableErr = "QERRCODE";
@@ -23,6 +26,8 @@ MainWindow::MainWindow(QWidget *parent)
     ui->lineEdit_thisTotal->setText(QString::number(mainSQL.getThisRecNum(QRTableErr, start_time)));
 
     ui->textBrowser->document()->setMaximumBlockCount(1000);
+
+    connect(this, SIGNAL(importNum(int, int)),&progress,SLOT(changeShow(int, int)));
 }
 
 MainWindow::~MainWindow()
@@ -129,5 +134,77 @@ void MainWindow::on_sendBtn_db_clicked()
     {
         QString tmp = "date:" + value.at(i) +" uid:" +value2.at(i)+" errcode:" +value3.at(i);
         ui->textBrowser->append(tmp);
+    }
+}
+
+
+
+void sleep(int sectime)
+{
+    QTime dieTime = QTime::currentTime().addMSecs(sectime);
+
+    while (QTime::currentTime() < dieTime) {
+        QCoreApplication::processEvents(QEventLoop::AllEvents);
+    }
+}
+
+void MainWindow::on_pushButton_3_clicked()
+{
+    QString filename;
+    filename = QFileDialog::getOpenFileName(this,tr("选择数据"),"",tr("Dats(*.xlsx)")); //选择路径
+    if(filename.isEmpty())
+    {
+        return;
+    }
+    else
+    {
+        QXlsx::Document xlsx_r(filename);
+        QXlsx::CellRange range;
+        range = xlsx_r.dimension();
+        int rowCount = range.rowCount();
+        qDebug() <<rowCount;
+        QStringList QRKEY,QDVALUE,ERRKEY,ERRVALUE;
+        QString QRTableErr = "QERRCODE";
+        QString QRKEY_C = "UID_16";
+        QString QRKEY_Err = "ErrCode";
+
+        ERRKEY<<"time"<<"UID_16"<<"ErrCode";
+
+        if(rowCount >= 2)
+        {
+            progress.show();
+            emit importNum(rowCount - 1, 0);
+        }
+
+        QString strDate, strUid, strErr;
+        for(int i = 2; i<= rowCount; i++)
+        {
+            strDate = xlsx_r.read(i,1).toString();
+            strUid = xlsx_r.read(i,2).toString();
+            strErr = xlsx_r.read(i,3).toString();
+            ERRVALUE<< strDate << strUid << strErr;
+
+            if(mainSQL.CheckRepeat(QRTableErr,QRKEY_C, strUid) == false)
+            {
+                mainSQL.insert(QRTableErr, ERRKEY, ERRVALUE);
+            }
+            ERRVALUE.clear();
+
+            emit importNum(rowCount - 1, i -1);
+            sleep(1);
+            //if(i % 50 == 0)
+            //{
+               // statusBar()->showMessage("正在导入.." + QString::number(100 * i / rowCount) + "%，请耐心等待...." + "(" + QString::number(i -1) + "," + QString::number(rowCount - 1) + ")", 10000);
+             ui->lineEdit_hisTotal->setText(QString::number(mainSQL.getToatalRecNum(QRTableErr)));
+             if(progress.isHidden() == true)
+             {
+                 break;
+             }
+
+           // }
+        }
+        statusBar()->showMessage("导入完成！！！", 5000);
+        ui->lineEdit_hisTotal->setText(QString::number(mainSQL.getToatalRecNum(QRTableErr)));
+
     }
 }

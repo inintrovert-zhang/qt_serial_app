@@ -11,6 +11,7 @@ paraSet::paraSet(QWidget *parent) :
     ui(new Ui::paraSet)
 {
     ui->setupUi(this);
+    ui->bTnSendPara->setEnabled(false);
     QPalette mypalette;
     mypalette.setColor(QPalette::WindowText,Qt::blue);
     statusBar()->setPalette(mypalette);
@@ -190,6 +191,8 @@ void paraSet::GetSerialData(QByteArray data)
            ui->lEditTemMin->setText(QString::number(vol_min));
            vol_min = data.data()[37];
            ui->lEditTemMax->setText(QString::number(vol_min));
+
+           ui->bTnSendPara->setEnabled(true);
 
            statusBar()->showMessage("参数接收成功..", 3000);
         }
