@@ -8,6 +8,7 @@ progressWait::progressWait(QWidget *parent) :
     ui->setupUi(this);
     this->setWindowModality(Qt::ApplicationModal);
     this->setWindowTitle(tr("导入"));
+    ui->label->setText(tr("导入完成！！！"));
 }
 
 progressWait::~progressWait()
@@ -22,5 +23,10 @@ void progressWait::changeShow(int total, int count)
     if(count == total)
     {
         ui->label->setText(tr("导入完成！！！"));
+    }
+    else
+    if(count == 0)
+    {
+       ui->label->setText(tr("正在导入，请耐心等待"));
     }
 }
